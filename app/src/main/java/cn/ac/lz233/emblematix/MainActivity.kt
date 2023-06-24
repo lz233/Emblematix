@@ -249,7 +249,6 @@ class MainActivity : ComponentActivity() {
                                     Text(text = "Copyright")
                             },
                             onValueChange = {
-                                scope.cancel()
                                 ConfigDao.copyright = it
                                 bitmap = bitmap.copy(bitmap.config, false)
                             },
