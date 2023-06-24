@@ -13,10 +13,12 @@ fun ExifInterface.getShutterSpeed() = getAttribute(ExifInterface.TAG_EXPOSURE_TI
     "1/${(1 / it.toDouble()).toInt()}"
 }
 
-fun ExifInterface.getFocalLength() = getAttribute(ExifInterface.TAG_FOCAL_LENGTH)?.let {
+fun ExifInterface.getFocalLength() = getAttribute(ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM) ?: getAttribute(ExifInterface.TAG_FOCAL_LENGTH)?.let {
     val parts = it.split('/')
     if (parts.size == 2) {
-        (parts[0].toInt() / parts[1].toInt()).toString()
+        (parts[0].toFloat() / parts[1].toFloat()).toString().run {
+            substring(0, this.indexOf('.') + 3)
+        }
     } else {
         null
     }
@@ -37,7 +39,7 @@ fun ExifInterface.getCopyRight() = StringBuilder().apply {
     if (getDate() != null) append("${getDate()}  ")
     if (ConfigDao.copyright != "") {
         append("Image © ${ConfigDao.copyright}. ")
-    } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null){
+    } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) {
         append("Image © ${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
     }
     append("All rights reserved.")
