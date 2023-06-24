@@ -35,6 +35,10 @@ fun ExifInterface.getDate() = getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
 
 fun ExifInterface.getCopyRight() = StringBuilder().apply {
     if (getDate() != null) append("${getDate()}  ")
-    if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) append("Image © ${if (ConfigDao.copyright == "") getAttribute(ExifInterface.TAG_COPYRIGHT) else ConfigDao.copyright}. ")
+    if (ConfigDao.copyright != "") {
+        append("Image © ${ConfigDao.copyright}. ")
+    } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null){
+        append("Image © ${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
+    }
     append("All rights reserved.")
 }.toString()
