@@ -217,7 +217,7 @@ class MainActivity : ComponentActivity() {
                                         isProcessing = true
                                         runCatching {
                                             val imageFilePath = "${Environment.DIRECTORY_PICTURES}${File.separator}Emblematix${File.separator}"
-                                            val imageFileName = "Emblematix_${exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)?.replace(' ', '-') ?: System.currentTimeMillis()}.png"
+                                            val imageFileName = "Emblematix_${exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)?.replace(' ', '-') ?: System.currentTimeMillis()}.webp"
                                             val values = ContentValues().apply {
                                                 put(MediaStore.Images.Media.DISPLAY_NAME, imageFileName)
                                                 put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis())
@@ -228,7 +228,7 @@ class MainActivity : ComponentActivity() {
                                                 values
                                             )
                                             val outputStream = contentResolver.openOutputStream(writeUri!!)
-                                            watermarkedBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream!!)
+                                            watermarkedBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, outputStream!!)
                                             outputStream.close()
                                         }.onFailure {
                                             LogUtil.e(it)
