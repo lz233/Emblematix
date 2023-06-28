@@ -10,7 +10,7 @@ fun ExifInterface.getDevice() = "${getAttribute(ExifInterface.TAG_MAKE) ?: ""} $
 fun ExifInterface.getFNumber() = getAttribute(ExifInterface.TAG_F_NUMBER)
 
 fun ExifInterface.getShutterSpeed() = getAttribute(ExifInterface.TAG_EXPOSURE_TIME)?.let {
-    "1/${(1 / it.toDouble()).toInt()}"
+    if (it.toDouble() >= 1) it else "1/${(1 / it.toDouble()).toInt()}"
 }
 
 fun ExifInterface.getFocalLength() = getAttribute(ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM) ?: getAttribute(ExifInterface.TAG_FOCAL_LENGTH)?.let {
@@ -28,7 +28,7 @@ fun ExifInterface.getISO() = getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITI
 
 fun ExifInterface.getPhotoInfo() = StringBuilder().apply {
     if (getFNumber() != null) append("f/${getFNumber()}")
-    if (getShutterSpeed() != null) append(" • ${getShutterSpeed()}")
+    if (getShutterSpeed() != null) append(" • ${getShutterSpeed()}s")
     if (getFocalLength() != null) append(" • ${getFocalLength()}mm")
     if (getISO() != null) append(" • ISO${getISO()}")
 }.toString()

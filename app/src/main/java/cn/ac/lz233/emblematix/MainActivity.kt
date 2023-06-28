@@ -124,15 +124,16 @@ class MainActivity : ComponentActivity() {
                                         this@withContext.ensureActive()
                                         if (watermark[x, y] == Color.BLACK) {
                                             this[x, y] = this[x, y].run {
+                                                val isWhite = (0..1).random()
                                                 val gain = (20..105).random()
                                                 val red = Color.red(this) + gain
                                                 val green = Color.green(this) + gain
                                                 val blue = Color.blue(this) + gain
                                                 Color.argb(
                                                     255,
-                                                    if (red in 0..255) red else 255,
-                                                    if (green in 0..255) green else 255,
-                                                    if (blue in 0..255) blue else 255
+                                                    if (red in 0..255) red else (if (isWhite == 1) 255 else red - gain),
+                                                    if (green in 0..255) green else (if (isWhite == 1) 255 else green - gain),
+                                                    if (blue in 0..255) blue else (if (isWhite == 1) 255 else blue - gain)
                                                 )
                                             }
                                         }
@@ -246,7 +247,7 @@ class MainActivity : ComponentActivity() {
                                 .fillMaxWidth(),
                             value = ConfigDao.copyright,
                             label = {
-                                    Text(text = "Copyright")
+                                Text(text = "Copyright")
                             },
                             onValueChange = {
                                 ConfigDao.copyright = it
