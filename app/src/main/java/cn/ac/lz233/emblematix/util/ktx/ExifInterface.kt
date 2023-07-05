@@ -33,14 +33,19 @@ fun ExifInterface.getPhotoInfo() = StringBuilder().apply {
     if (getISO() != null) append(" • ISO${getISO()}")
 }.toString()
 
-fun ExifInterface.getDate() = getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+fun ExifInterface.getDate() = getAttribute(ExifInterface.TAG_DATETIME)
 
 fun ExifInterface.getCopyRight() = StringBuilder().apply {
-    if (getDate() != null) append("${getDate()}  ")
+    val dateTime = getDate()
+    if (dateTime != null) append("${dateTime.substring(dateTime.indexOf(':')+1).replaceFirst(':','.')}  ")
     if (ConfigDao.copyright != "") {
-        append("Image © ${ConfigDao.copyright}. ")
+        append("Image © ")
+        if (dateTime != null) append("${dateTime.substring(0,dateTime.indexOf(':'))} ")
+        append("${ConfigDao.copyright}. ")
     } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) {
-        append("Image © ${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
+        append("Image © ")
+        if (dateTime != null) append("${dateTime.substring(0,dateTime.indexOf(':'))} ")
+        append("${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
     }
     append("All rights reserved.")
 }.toString()
