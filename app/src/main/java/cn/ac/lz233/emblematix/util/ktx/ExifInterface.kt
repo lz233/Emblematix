@@ -5,7 +5,13 @@ import cn.ac.lz233.emblematix.logic.dao.ConfigDao
 import java.math.BigDecimal
 import kotlin.math.pow
 
-fun ExifInterface.getDevice() = "${getAttribute(ExifInterface.TAG_MAKE) ?: ""} ${getAttribute(ExifInterface.TAG_MODEL) ?: ""}"
+fun ExifInterface.getManufacturer() = getAttribute(ExifInterface.TAG_MAKE)
+
+fun ExifInterface.getModel() = getAttribute(ExifInterface.TAG_MODEL)
+fun ExifInterface.getDevice() = StringBuilder().apply {
+    if (ConfigDao.showManufacturer && getManufacturer() != null) append("${getManufacturer()} ")
+    if (ConfigDao.showModel && getModel() != null) append("${getModel()}")
+}.toString().trim()
 
 fun ExifInterface.getFNumber() = getAttribute(ExifInterface.TAG_F_NUMBER)
 
@@ -27,25 +33,28 @@ fun ExifInterface.getFocalLength() = getAttribute(ExifInterface.TAG_FOCAL_LENGTH
 fun ExifInterface.getISO() = getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY)
 
 fun ExifInterface.getPhotoInfo() = StringBuilder().apply {
-    if (getFNumber() != null) append("f/${getFNumber()}")
-    if (getShutterSpeed() != null) append(" • ${getShutterSpeed()}s")
-    if (getFocalLength() != null) append(" • ${getFocalLength()}mm")
-    if (getISO() != null) append(" • ISO${getISO()}")
+    if (ConfigDao.showFNumber && getFNumber() != null) append("f/${getFNumber()} • ")
+    if (ConfigDao.showShutterSpeed && getShutterSpeed() != null) append("${getShutterSpeed()}s • ")
+    if (ConfigDao.showFocalLength && getFocalLength() != null) append("${getFocalLength()}mm • ")
+    if (ConfigDao.showISO && getISO() != null) append("ISO${getISO()}")
+    if (endsWith(" • ")) delete(length - 4, length - 1)
 }.toString()
 
 fun ExifInterface.getDate() = getAttribute(ExifInterface.TAG_DATETIME)
 
 fun ExifInterface.getCopyRight() = StringBuilder().apply {
     val dateTime = getDate()
-    if (dateTime != null) append("${dateTime.substring(dateTime.indexOf(':')+1).replaceFirst(':','.')}  ")
-    if (ConfigDao.copyright != "") {
-        append("Image © ")
-        if (dateTime != null) append("${dateTime.substring(0,dateTime.indexOf(':'))} ")
-        append("${ConfigDao.copyright}. ")
-    } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) {
-        append("Image © ")
-        if (dateTime != null) append("${dateTime.substring(0,dateTime.indexOf(':'))} ")
-        append("${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
+    if (ConfigDao.showDateTime && dateTime != null) append("${dateTime.substring(dateTime.indexOf(':') + 1).replaceFirst(':', '.')}  ")
+    if (ConfigDao.showCopyright) {
+        if (ConfigDao.copyright != "") {
+            append("Image © ")
+            if (dateTime != null) append("${dateTime.substring(0, dateTime.indexOf(':'))} ")
+            append("${ConfigDao.copyright}. ")
+        } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) {
+            append("Image © ")
+            if (dateTime != null) append("${dateTime.substring(0, dateTime.indexOf(':'))} ")
+            append("${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
+        }
+        append("All rights reserved.")
     }
-    append("All rights reserved.")
-}.toString()
+}.toString().trim()

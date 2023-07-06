@@ -2,6 +2,7 @@ package cn.ac.lz233.emblematix
 
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.graphics.Bitmap.CompressFormat
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
@@ -17,11 +18,15 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +67,8 @@ import androidx.core.graphics.set
 import androidx.exifinterface.media.ExifInterface
 import cn.ac.lz233.emblematix.logic.dao.ConfigDao
 import cn.ac.lz233.emblematix.ui.theme.EmblematixTheme
+import cn.ac.lz233.emblematix.ui.widget.ConfigChip
+import cn.ac.lz233.emblematix.ui.widget.SingleChoiceConfigChipGroup
 import cn.ac.lz233.emblematix.util.LogUtil
 import cn.ac.lz233.emblematix.util.ktx.getCopyRight
 import cn.ac.lz233.emblematix.util.ktx.getDevice
@@ -98,46 +106,71 @@ class MainActivity : ComponentActivity() {
                     withContext(Dispatchers.IO) {
                         if (bitmap.width != 1 && bitmap.height != 1) {
                             isProcessing = true
-                            val watermark = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-                            val canvas = Canvas(watermark)
-                            val paint = Paint().apply {
-                                color = Color.BLACK
-                                textSize = min(bitmap.width, bitmap.height) * 0.03f
-                                textAlign = Paint.Align.CENTER
-                                typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
-                            }
-                            var drawStartHeight = bitmap.height * 0.9f
-                            listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}", exif.getCopyRight()).forEach {
-                                this@withContext.ensureActive()
-                                canvas.drawText(
-                                    it,
-                                    bitmap.width / 2f,
-                                    drawStartHeight,
-                                    paint
-                                )
-                                drawStartHeight += paint.descent() - paint.ascent()
-                            }
-                            watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true).apply {
-                                val overlayHeight = watermark.height * 0.9.toInt()
-                                for (x in 0 until watermark.width) {
-                                    for (y in overlayHeight until watermark.height) {
-                                        this@withContext.ensureActive()
-                                        if (watermark[x, y] == Color.BLACK) {
-                                            this[x, y] = this[x, y].run {
-                                                val isWhite = (0..1).random()
-                                                val gain = (20..105).random()
-                                                val red = Color.red(this) + gain
-                                                val green = Color.green(this) + gain
-                                                val blue = Color.blue(this) + gain
-                                                Color.argb(
-                                                    255,
-                                                    if (red in 0..255) red else (if (isWhite == 1) 255 else red - gain),
-                                                    if (green in 0..255) green else (if (isWhite == 1) 255 else green - gain),
-                                                    if (blue in 0..255) blue else (if (isWhite == 1) 255 else blue - gain)
-                                                )
+                            if (ConfigDao.randomization == "randomize") {
+                                val watermark = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+                                val canvas = Canvas(watermark)
+                                val paint = Paint().apply {
+                                    color = Color.BLACK
+                                    textSize = min(bitmap.width, bitmap.height) * 0.03f
+                                    textAlign = Paint.Align.CENTER
+                                    typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
+                                }
+                                var drawStartHeight = bitmap.height * 0.9f
+                                listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}", exif.getCopyRight()).forEach {
+                                    this@withContext.ensureActive()
+                                    canvas.drawText(
+                                        it,
+                                        bitmap.width / 2f,
+                                        drawStartHeight,
+                                        paint
+                                    )
+                                    drawStartHeight += paint.descent() - paint.ascent()
+                                }
+                                watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true).apply {
+                                    val overlayHeight = watermark.height * 0.9.toInt()
+                                    var offset = 50
+                                    val addOrSub = if (ConfigDao.alterBrightness == "dim") -1 else 1
+                                    for (x in 0 until watermark.width) {
+                                        for (y in overlayHeight until watermark.height) {
+                                            this@withContext.ensureActive()
+                                            if (watermark[x, y] == Color.BLACK) {
+                                                this[x, y] = this[x, y].run {
+                                                    val gain = (0 + offset..50 + offset).random() * addOrSub
+                                                    val red = Color.red(this) + gain
+                                                    val green = Color.green(this) + gain
+                                                    val blue = Color.blue(this) + gain
+                                                    if ((red in 0..255) && (green in 0..255) && (blue in 0..255)) {
+                                                        offset += addOrSub
+                                                        Color.argb(255, red, green, blue)
+                                                    } else {
+                                                        offset -= addOrSub
+                                                        Color.argb(255, red - gain, green - gain, blue - gain)
+                                                    }
+                                                }
+                                                if (offset !in 0..100) offset = if (addOrSub == 1) 100 else 0
                                             }
                                         }
                                     }
+                                }
+                            } else {
+                                watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+                                val canvas = Canvas(watermarkedBitmap)
+                                val paint = Paint().apply {
+                                    color = if (ConfigDao.alterBrightness == "dim") Color.argb(50, 0, 0, 0) else Color.argb(80, 255, 255, 255)
+                                    textSize = min(bitmap.width, bitmap.height) * 0.03f
+                                    textAlign = Paint.Align.CENTER
+                                    typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
+                                }
+                                var drawStartHeight = bitmap.height * 0.9f
+                                listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}", exif.getCopyRight()).forEach {
+                                    this@withContext.ensureActive()
+                                    canvas.drawText(
+                                        it,
+                                        bitmap.width / 2f,
+                                        drawStartHeight,
+                                        paint
+                                    )
+                                    drawStartHeight += paint.descent() - paint.ascent()
                                 }
                             }
                             isProcessing = false
@@ -176,7 +209,7 @@ class MainActivity : ComponentActivity() {
                     Column(
                         Modifier
                             .padding(innerPadding)
-                            .padding(start = 25.dp, end = 25.dp)
+                            //.padding(start = 25.dp, end = 25.dp)
                             .verticalScroll(rememberScrollState())
                     ) {
                         Card(
@@ -186,7 +219,7 @@ class MainActivity : ComponentActivity() {
                             shape = RoundedCornerShape(18.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 41.dp, bottom = 0.dp)
+                                .padding(top = 20.dp, bottom = 0.dp, start = 25.dp, end = 25.dp)
                                 .defaultMinSize(minHeight = 200.dp)
                         ) {
                             Surface(
@@ -205,45 +238,93 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
-                        Button(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 25.dp, end = 25.dp)
-                                .defaultMinSize(minHeight = 50.dp),
-                            shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
-                            enabled = !isProcessing && watermarkedBitmap.height != 1,
-                            onClick = {
-                                scope.launch {
-                                    withContext(Dispatchers.IO) {
+                        Row(
+                            modifier = Modifier.padding(start = 25.dp, end = 25.dp)
+                        ) {
+                            Button(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 25.dp, end = 12.5.dp)
+                                    .defaultMinSize(minHeight = 50.dp),
+                                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
+                                enabled = !isProcessing && watermarkedBitmap.height != 1,
+                                onClick = {
+                                    scope.launch {
                                         isProcessing = true
-                                        runCatching {
-                                            val imageFilePath = "${Environment.DIRECTORY_PICTURES}${File.separator}Emblematix${File.separator}"
-                                            val imageFileName = "Emblematix_${exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)?.replace(' ', '-') ?: System.currentTimeMillis()}.webp"
-                                            val values = ContentValues().apply {
-                                                put(MediaStore.Images.Media.DISPLAY_NAME, imageFileName)
-                                                put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis())
-                                                put(MediaStore.Images.Media.RELATIVE_PATH, imageFilePath)
-                                            }
-                                            val writeUri = contentResolver.insert(
-                                                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                                                values
-                                            )
-                                            val outputStream = contentResolver.openOutputStream(writeUri!!)
-                                            watermarkedBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, outputStream!!)
-                                            outputStream.close()
-                                        }.onFailure {
-                                            LogUtil.e(it)
-                                        }
+                                        saveImage(watermarkedBitmap, CompressFormat.WEBP_LOSSLESS)
                                         isProcessing = false
                                     }
                                 }
+                            ) {
+                                Text(text = "WebP")
                             }
-                        ) {
-                            Text(text = "Save")
+                            Button(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 12.5.dp, end = 25.dp)
+                                    .defaultMinSize(minHeight = 50.dp),
+                                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
+                                enabled = !isProcessing && watermarkedBitmap.height != 1,
+                                onClick = {
+                                    scope.launch {
+                                        isProcessing = true
+                                        saveImage(watermarkedBitmap, CompressFormat.JPEG)
+                                        isProcessing = false
+                                    }
+                                }
+                            ) {
+                                Text(text = "JPG")
+                            }
                         }
+                        Row(
+                            modifier = Modifier
+                                .padding(top = 20.dp)
+                                .horizontalScroll(rememberScrollState())
+                        ) {
+                            Spacer(modifier = Modifier.width(20.dp))
+                            ConfigChip("Manufacturer", "showManufacturer", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("Model", "showModel", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("F Number", "showFNumber", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("Shutter Speed", "showShutterSpeed", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("Focal Length", "showFocalLength", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("ISO", "showISO", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("Date & Time", "showDateTime", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            ConfigChip("Copyright", "showCopyright", true) {
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            }
+                            Spacer(modifier = Modifier.width(20.dp))
+                        }
+                        SingleChoiceConfigChipGroup(
+                            modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
+                            key = "randomization",
+                            defaultValue = "Randomize",
+                            "Randomize" to { bitmap = bitmap.copy(bitmap.config, false) },
+                            "Static" to { bitmap = bitmap.copy(bitmap.config, false) }
+                        )
+                        SingleChoiceConfigChipGroup(
+                            modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
+                            key = "alterBrightness",
+                            defaultValue = "Brighten",
+                            "Dim" to { bitmap = bitmap.copy(bitmap.config, false) },
+                            "Brighten" to { bitmap = bitmap.copy(bitmap.config, false) }
+                        )
                         OutlinedTextField(
                             modifier = Modifier
-                                .padding(top = 25.dp)
+                                .padding(top = 10.dp, start = 25.dp, end = 25.dp)
                                 .fillMaxWidth(),
                             value = ConfigDao.copyright,
                             label = {
@@ -257,6 +338,37 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun saveImage(bitmap: Bitmap, compressFormat: CompressFormat) {
+        withContext(Dispatchers.IO) {
+            //isProcessing = true
+            runCatching {
+                val imageFilePath = "${Environment.DIRECTORY_PICTURES}${File.separator}Emblematix${File.separator}"
+                val imageFileName = "Emblematix_${System.currentTimeMillis()}.${
+                    when (compressFormat) {
+                        CompressFormat.JPEG -> "jpg"
+                        CompressFormat.WEBP_LOSSLESS -> "webp"
+                        else -> "jpg"
+                    }
+                }"
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, imageFileName)
+                    put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis())
+                    put(MediaStore.Images.Media.RELATIVE_PATH, imageFilePath)
+                }
+                val writeUri = contentResolver.insert(
+                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    values
+                )
+                val outputStream = contentResolver.openOutputStream(writeUri!!)
+                bitmap.compress(compressFormat, 100, outputStream!!)
+                outputStream.close()
+            }.onFailure {
+                LogUtil.e(it)
+            }
+            //isProcessing = false
         }
     }
 }
