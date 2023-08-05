@@ -144,23 +144,24 @@ class MainActivity : ComponentActivity() {
                                 watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true).apply {
                                     val overlayHeight = (drawStartHeight - (paint.descent() - paint.ascent())).toInt()
                                     val addOrSub = if (ConfigDao.alterBrightness == "dim") -1 else 1
-                                    var gain = (0..100).random() * addOrSub
+                                    var gain = 0
                                     for (x in 0 until watermark.width) {
                                         for (y in overlayHeight until watermark.height) {
                                             this@withContext.ensureActive()
                                             if (watermark[x, y] == Color.BLACK) {
                                                 this[x, y] = this[x, y].run {
-                                                    val red = Color.red(this) + gain
-                                                    val green = Color.green(this) + gain
-                                                    val blue = Color.blue(this) + gain
-                                                    if ((red in 0..255) && (green in 0..255) && (blue in 0..255)) {
-                                                        Color.argb(255, red, green, blue)
+                                                    val red = Color.red(this)
+                                                    val green = Color.green(this)
+                                                    val blue = Color.blue(this)
+                                                    gain = if (addOrSub == 1) {
+                                                        (0..minOf(255 - red, 255 - green, 255 - blue, 100)).random()
+
                                                     } else {
-                                                        this
-                                                        //Color.argb(255, red - gain, green - gain, blue - gain)
+                                                        -((0..minOf(red, green, blue, 100)).random())
                                                     }
+                                                    Color.argb(255, red + gain, green + gain, blue + gain)
                                                 }
-                                                gain = (0..100).random() * addOrSub
+
                                             }
                                         }
                                     }
@@ -189,7 +190,7 @@ class MainActivity : ComponentActivity() {
                             }
                             val canvas = Canvas(watermarkedBitmap)
                             val paint = Paint().apply {
-                                color = if (ConfigDao.alterBrightness == "dim") Color.argb(5, 0, 0, 0) else Color.argb(5, 255, 255, 255)
+                                color = if (ConfigDao.alterBrightness == "dim") Color.argb(5, 0, 0, 0) else Color.argb(3, 255, 255, 255)
                                 textSize = min(bitmap.width, bitmap.height) * 0.05f
                                 textAlign = Paint.Align.LEFT
                                 typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
