@@ -46,4 +46,8 @@ object ConfigDao {
     var alterBrightness: String
         get() = App.sp.getString("alterBrightness", "brighten")!!
         set(value) = App.editor.putString("alterBrightness", value).apply()
+
+    var watermarkType:String
+        get() = App.sp.getString("watermarkType", "normal")!!
+        set(value) = App.editor.putString("watermarkType", value).apply()
 }

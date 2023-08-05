@@ -1,8 +1,13 @@
 package cn.ac.lz233.emblematix.util.ktx
 
+import android.annotation.SuppressLint
 import androidx.exifinterface.media.ExifInterface
 import cn.ac.lz233.emblematix.logic.dao.ConfigDao
+import cn.ac.lz233.emblematix.util.LogUtil
 import java.math.BigDecimal
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.pow
 
 fun ExifInterface.getManufacturer() = getAttribute(ExifInterface.TAG_MAKE)
@@ -23,10 +28,16 @@ fun ExifInterface.getFocalLength() = getAttribute(ExifInterface.TAG_FOCAL_LENGTH
     val parts = it.split('/')
     if (parts.size == 2) {
         (parts[0].toFloat() / parts[1].toFloat()).toString().run {
-            substring(0, this.indexOf('.') + 3)
+            safeSubString(0, this.indexOf('.') + 3).run {
+                if (last() == '.') {
+                    substring(0, lastIndex)
+                } else {
+                    this
+                }
+            }
         }
     } else {
-        null
+        it
     }
 }
 
@@ -34,27 +45,33 @@ fun ExifInterface.getISO() = getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITI
 
 fun ExifInterface.getPhotoInfo() = StringBuilder().apply {
     if (ConfigDao.showFNumber && getFNumber() != null) append("f/${getFNumber()} • ")
-    if (ConfigDao.showShutterSpeed && getShutterSpeed() != null) append("${getShutterSpeed()}s • ")
+    if (ConfigDao.showShutterSpeed && getShutterSpeed() != null) append("${getShutterSpeed()} • ")
     if (ConfigDao.showFocalLength && getFocalLength() != null) append("${getFocalLength()}mm • ")
     if (ConfigDao.showISO && getISO() != null) append("ISO${getISO()}")
-    if (endsWith(" • ")) delete(length - 4, length - 1)
+    if (endsWith(" • ")) delete(length - 3, length - 1)
 }.toString()
 
-fun ExifInterface.getDate() = getAttribute(ExifInterface.TAG_DATETIME)
+fun ExifInterface.getAuthor() = if (ConfigDao.copyright != "") {
+    ConfigDao.copyright
+} else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) {
+    getAttribute(ExifInterface.TAG_COPYRIGHT) ?: ""
+} else {
+    ""
+}
 
+@SuppressLint("RestrictedApi")
 fun ExifInterface.getCopyRight() = StringBuilder().apply {
-    val dateTime = getDate()
-    if (ConfigDao.showDateTime && dateTime != null) append("${dateTime.substring(dateTime.indexOf(':') + 1).replaceFirst(':', '.')}  ")
+    val dateTime = dateTimeOriginal?.let {
+        SimpleDateFormat("yyyy|MM/dd HH:mm:ss", Locale.getDefault()).format(Date(it))
+    }?.split('|')
+    val author = getAuthor()
+    if (ConfigDao.showDateTime && dateTime != null) append("${dateTime[1]}  ")
     if (ConfigDao.showCopyright) {
-        if (ConfigDao.copyright != "") {
+        if (author != "") {
             append("Image © ")
-            if (dateTime != null) append("${dateTime.substring(0, dateTime.indexOf(':'))} ")
-            append("${ConfigDao.copyright}. ")
-        } else if (getAttribute(ExifInterface.TAG_COPYRIGHT) != null) {
-            append("Image © ")
-            if (dateTime != null) append("${dateTime.substring(0, dateTime.indexOf(':'))} ")
-            append("${getAttribute(ExifInterface.TAG_COPYRIGHT)}. ")
+            if (dateTime != null) append("${dateTime[0]} ")
+            append("${author}.")
         }
-        append("All rights reserved.")
+        if (ConfigDao.watermarkType == "normal") append(" All rights reserved.")
     }
 }.toString().trim()
