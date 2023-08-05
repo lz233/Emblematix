@@ -79,6 +79,9 @@ import cn.ac.lz233.emblematix.util.ktx.getDevice
 import cn.ac.lz233.emblematix.util.ktx.getISO
 import cn.ac.lz233.emblematix.util.ktx.getPhotoInfo
 import cn.ac.lz233.emblematix.util.ktx.getString
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import com.bumptech.glide.signature.ObjectKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
@@ -99,7 +102,7 @@ class MainActivity : ComponentActivity() {
 
     lateinit var exif: ExifInterface
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class, ExperimentalGlideComposeApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -108,6 +111,7 @@ class MainActivity : ComponentActivity() {
                 val scope = rememberCoroutineScope()
                 val snackbarHostState = remember { SnackbarHostState() }
                 var isProcessing by remember { mutableStateOf(false) }
+                var path by remember { mutableStateOf("") }
                 var bitmap by remember { mutableStateOf(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)) }
                 var watermarkedBitmap by remember { mutableStateOf(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)) }
                 LaunchedEffect(bitmap) {
@@ -224,9 +228,10 @@ class MainActivity : ComponentActivity() {
                     if (activityResult.resultCode == Activity.RESULT_OK) {
                         activityResult.data?.data?.let {
                             val inputStream = contentResolver.openInputStream(it)!!
+                            path = it.path!!
                             exif = ExifInterface(inputStream)
                             watermarkedBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-                            bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, it))
+                            bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, it)).copy(Bitmap.Config.ARGB_8888, true)
                             inputStream.close()
                         }
                     }
@@ -288,11 +293,13 @@ class MainActivity : ComponentActivity() {
                             Surface(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Image(
-                                    painter = BitmapPainter(if (watermarkedBitmap.height == 1) bitmap.asImageBitmap() else watermarkedBitmap.asImageBitmap()),
+                                GlideImage(
+                                    model = if (watermarkedBitmap.height == 1) bitmap else watermarkedBitmap,
                                     contentDescription = null,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                    modifier = Modifier.fillMaxWidth(),
+                                ){
+                                    it.signature(ObjectKey(path))
+                                }
                                 if (isProcessing) {
                                     LinearProgressIndicator(
                                         modifier = Modifier
