@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
                             }
                             val canvas = Canvas(watermarkedBitmap)
                             val paint = Paint().apply {
-                                color = if (ConfigDao.alterBrightness == "dim") Color.argb(5, 0, 0, 0) else Color.argb(3, 255, 255, 255)
+                                color = if (ConfigDao.alterBrightness == "dim") Color.argb(3, 0, 0, 0) else Color.argb(3, 255, 255, 255)
                                 textSize = min(bitmap.width, bitmap.height) * 0.05f
                                 textAlign = Paint.Align.LEFT
                                 typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
