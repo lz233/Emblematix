@@ -72,6 +72,5 @@ fun ExifInterface.getCopyRight() = StringBuilder().apply {
             if (dateTime != null) append("${dateTime[0]} ")
             append("${author}.")
         }
-        if (ConfigDao.watermarkType == "normal") append(" All rights reserved.")
     }
 }.toString().trim()

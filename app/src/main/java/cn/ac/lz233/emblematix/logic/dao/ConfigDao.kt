@@ -7,6 +7,10 @@ object ConfigDao {
         get() = App.sp.getString("copyright", "")!!
         set(value) = App.editor.putString("copyright", value).apply()
 
+    var location: String
+        get() = App.sp.getString("location", "")!!
+        set(value) = App.editor.putString("location", value).apply()
+
     var showManufacturer: Boolean
         get() = App.sp.getBoolean("showManufacturer", true)
         set(value) = App.editor.putBoolean("showManufacturer", value).apply()

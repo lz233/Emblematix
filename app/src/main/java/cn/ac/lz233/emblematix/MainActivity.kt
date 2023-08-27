@@ -32,12 +32,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +68,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.alpha
 import androidx.core.graphics.get
+import androidx.core.graphics.luminance
 import androidx.core.graphics.set
 import androidx.core.util.toRange
 import androidx.exifinterface.media.ExifInterface
@@ -119,9 +125,9 @@ class MainActivity : ComponentActivity() {
                         if (bitmap.width != 1 && bitmap.height != 1) {
                             isProcessing = true
                             val drawText = if (ConfigDao.watermarkType == "normal") {
-                                listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}", exif.getCopyRight())
+                                listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}", "${ConfigDao.location}  ${exif.getCopyRight()}")
                             } else {
-                                listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}  ${exif.getCopyRight()}")
+                                listOf(ConfigDao.location, "${exif.getDevice()}  ${exif.getPhotoInfo()}  ${exif.getCopyRight()}")
                             }
                             if (ConfigDao.randomization == "randomize") {
                                 val watermark = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
@@ -132,8 +138,8 @@ class MainActivity : ComponentActivity() {
                                     textAlign = if (ConfigDao.watermarkType == "normal") Paint.Align.CENTER else Paint.Align.LEFT
                                     typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
                                 }
-                                val drawStartWidth = if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else max(bitmap.width, bitmap.height) * 0.01f
-                                val drawStartHeight = if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent())
+                                val drawStartWidth = if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else bitmap.width * 0.01f
+                                val drawStartHeight = if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent()) * 2
                                 var drawStartHeightDynamic = drawStartHeight
                                 drawText.forEach {
                                     this@withContext.ensureActive()
@@ -147,7 +153,6 @@ class MainActivity : ComponentActivity() {
                                 }
                                 watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true).apply {
                                     val overlayHeight = (drawStartHeight - (paint.descent() - paint.ascent())).toInt()
-                                    val addOrSub = if (ConfigDao.alterBrightness == "dim") -1 else 1
                                     var gain = 0
                                     for (x in 0 until watermark.width) {
                                         for (y in overlayHeight until watermark.height) {
@@ -157,15 +162,13 @@ class MainActivity : ComponentActivity() {
                                                     val red = Color.red(this)
                                                     val green = Color.green(this)
                                                     val blue = Color.blue(this)
-                                                    gain = if (addOrSub == 1) {
-                                                        (0..minOf(255 - red, 255 - green, 255 - blue, 100)).random()
-
-                                                    } else {
+                                                    gain = if (this.luminance > 0.5) {
                                                         -((0..minOf(red, green, blue, 100)).random())
+                                                    } else {
+                                                        (0..minOf(255 - red, 255 - green, 255 - blue, 100)).random()
                                                     }
                                                     Color.argb(255, red + gain, green + gain, blue + gain)
                                                 }
-
                                             }
                                         }
                                     }
@@ -179,8 +182,8 @@ class MainActivity : ComponentActivity() {
                                     textAlign = if (ConfigDao.watermarkType == "normal") Paint.Align.CENTER else Paint.Align.LEFT
                                     typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
                                 }
-                                val drawStartWidth = if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else max(bitmap.width, bitmap.height) * 0.01f
-                                var drawStartHeight = if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent())
+                                val drawStartWidth = if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else bitmap.width * 0.01f
+                                var drawStartHeight = if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent()) * 2
                                 drawText.forEach {
                                     this@withContext.ensureActive()
                                     canvas.drawText(
@@ -192,7 +195,7 @@ class MainActivity : ComponentActivity() {
                                     drawStartHeight += paint.descent() - paint.ascent()
                                 }
                             }
-                            val canvas = Canvas(watermarkedBitmap)
+                            /*val canvas = Canvas(watermarkedBitmap)
                             val paint = Paint().apply {
                                 color = if (ConfigDao.alterBrightness == "dim") Color.argb(3, 0, 0, 0) else Color.argb(3, 255, 255, 255)
                                 textSize = min(bitmap.width, bitmap.height) * 0.05f
@@ -219,7 +222,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 drawStartHeight += (paint.textSize.toInt()..(paint.textSize * 3).toInt()).random()
-                            }
+                            }*/
                             isProcessing = false
                         }
                     }
@@ -297,7 +300,7 @@ class MainActivity : ComponentActivity() {
                                     model = if (watermarkedBitmap.height == 1) bitmap else watermarkedBitmap,
                                     contentDescription = null,
                                     modifier = Modifier.fillMaxWidth(),
-                                ){
+                                ) {
                                     it.signature(ObjectKey(path))
                                 }
                                 if (isProcessing) {
@@ -392,12 +395,27 @@ class MainActivity : ComponentActivity() {
                             "Randomize" to { bitmap = bitmap.copy(bitmap.config, false) },
                             "Static" to { bitmap = bitmap.copy(bitmap.config, false) }
                         )
-                        SingleChoiceConfigChipGroup(
-                            modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
-                            key = "alterBrightness",
-                            defaultValue = "Brighten",
-                            "Dim" to { bitmap = bitmap.copy(bitmap.config, false) },
-                            "Brighten" to { bitmap = bitmap.copy(bitmap.config, false) }
+                        if (ConfigDao.randomization == "static") {
+                            SingleChoiceConfigChipGroup(
+                                modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
+                                key = "alterBrightness",
+                                defaultValue = "Brighten",
+                                "Dim" to { bitmap = bitmap.copy(bitmap.config, false) },
+                                "Brighten" to { bitmap = bitmap.copy(bitmap.config, false) }
+                            )
+                        }
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .padding(top = 10.dp, start = 25.dp, end = 25.dp)
+                                .fillMaxWidth(),
+                            value = ConfigDao.location,
+                            label = {
+                                Text(text = "Location")
+                            },
+                            onValueChange = {
+                                ConfigDao.location = it
+                                bitmap = bitmap.copy(bitmap.config, false)
+                            },
                         )
                         OutlinedTextField(
                             modifier = Modifier
