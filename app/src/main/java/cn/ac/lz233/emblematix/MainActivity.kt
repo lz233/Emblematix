@@ -54,6 +54,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,9 +107,12 @@ import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
 
-    lateinit var exif: ExifInterface
+    private lateinit var exif: ExifInterface
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class, ExperimentalGlideComposeApi::class)
+    @OptIn(
+        ExperimentalMaterial3Api::class,
+        ExperimentalGlideComposeApi::class
+    )
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -118,28 +122,63 @@ class MainActivity : ComponentActivity() {
                 val snackbarHostState = remember { SnackbarHostState() }
                 var isProcessing by remember { mutableStateOf(false) }
                 var path by remember { mutableStateOf("") }
-                var bitmap by remember { mutableStateOf(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)) }
-                var watermarkedBitmap by remember { mutableStateOf(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)) }
+                var bitmap by remember {
+                    mutableStateOf(
+                        Bitmap.createBitmap(
+                            1,
+                            1,
+                            Bitmap.Config.ARGB_8888
+                        )
+                    )
+                }
+                var watermarkedBitmap by remember {
+                    mutableStateOf(
+                        Bitmap.createBitmap(
+                            1,
+                            1,
+                            Bitmap.Config.ARGB_8888
+                        )
+                    )
+                }
                 LaunchedEffect(bitmap) {
                     withContext(Dispatchers.IO) {
                         if (bitmap.width != 1 && bitmap.height != 1) {
                             isProcessing = true
                             val drawText = if (ConfigDao.watermarkType == "normal") {
-                                listOf("${exif.getDevice()}  ${exif.getPhotoInfo()}", "${ConfigDao.location}  ${exif.getCopyRight()}")
+                                listOf(
+                                    "${exif.getDevice()}  ${exif.getPhotoInfo()}".trim(),
+                                    "${ConfigDao.location}  ${exif.getCopyRight()}".trim()
+                                )
                             } else {
-                                listOf(ConfigDao.location, "${exif.getDevice()}  ${exif.getPhotoInfo()}  ${exif.getCopyRight()}")
+                                listOf(
+                                    ConfigDao.location,
+                                    "${exif.getDevice()}  ${exif.getPhotoInfo()}  ${exif.getCopyRight()}".trim()
+                                )
                             }
                             if (ConfigDao.randomization == "randomize") {
-                                val watermark = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+                                val watermark = Bitmap.createBitmap(
+                                    bitmap.width,
+                                    bitmap.height,
+                                    Bitmap.Config.ARGB_8888
+                                )
                                 val canvas = Canvas(watermark)
                                 val paint = Paint().apply {
                                     color = Color.BLACK
-                                    textSize = min(bitmap.width, bitmap.height) * if (ConfigDao.watermarkType == "normal") 0.03f else 0.02f
-                                    textAlign = if (ConfigDao.watermarkType == "normal") Paint.Align.CENTER else Paint.Align.LEFT
-                                    typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
+                                    textSize = min(
+                                        bitmap.width,
+                                        bitmap.height
+                                    ) * if (ConfigDao.watermarkType == "normal") 0.03f else 0.02f
+                                    textAlign =
+                                        if (ConfigDao.watermarkType == "normal") Paint.Align.CENTER else Paint.Align.LEFT
+                                    typeface = ResourcesCompat.getFont(
+                                        App.context,
+                                        R.font.googlesansregular
+                                    )
                                 }
-                                val drawStartWidth = if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else bitmap.width * 0.01f
-                                val drawStartHeight = if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent()) * 2
+                                val drawStartWidth =
+                                    if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else bitmap.width * 0.01f
+                                val drawStartHeight =
+                                    if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent()) * 2
                                 var drawStartHeightDynamic = drawStartHeight
                                 drawText.forEach {
                                     this@withContext.ensureActive()
@@ -151,39 +190,70 @@ class MainActivity : ComponentActivity() {
                                     )
                                     drawStartHeightDynamic += paint.descent() - paint.ascent()
                                 }
-                                watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true).apply {
-                                    val overlayHeight = (drawStartHeight - (paint.descent() - paint.ascent())).toInt()
-                                    var gain = 0
-                                    for (x in 0 until watermark.width) {
-                                        for (y in overlayHeight until watermark.height) {
-                                            this@withContext.ensureActive()
-                                            if (watermark[x, y] == Color.BLACK) {
-                                                this[x, y] = this[x, y].run {
-                                                    val red = Color.red(this)
-                                                    val green = Color.green(this)
-                                                    val blue = Color.blue(this)
-                                                    gain = if (this.luminance > 0.5) {
-                                                        -((0..minOf(red, green, blue, 100)).random())
-                                                    } else {
-                                                        (0..minOf(255 - red, 255 - green, 255 - blue, 100)).random()
+                                watermarkedBitmap =
+                                    bitmap.copy(Bitmap.Config.ARGB_8888, true).apply {
+                                        val overlayHeight =
+                                            (drawStartHeight - (paint.descent() - paint.ascent())).toInt()
+                                        var gain = 0
+                                        for (x in 0 until watermark.width) {
+                                            for (y in overlayHeight until watermark.height) {
+                                                this@withContext.ensureActive()
+                                                if (watermark[x, y] == Color.BLACK) {
+                                                    this[x, y] = this[x, y].run {
+                                                        val red = Color.red(this)
+                                                        val green = Color.green(this)
+                                                        val blue = Color.blue(this)
+                                                        gain = if (this.luminance > 0.5) {
+                                                            -((0..minOf(
+                                                                red,
+                                                                green,
+                                                                blue,
+                                                                100
+                                                            )).random())
+                                                        } else {
+                                                            (0..minOf(
+                                                                255 - red,
+                                                                255 - green,
+                                                                255 - blue,
+                                                                100
+                                                            )).random()
+                                                        }
+                                                        Color.argb(
+                                                            255,
+                                                            red + gain,
+                                                            green + gain,
+                                                            blue + gain
+                                                        )
                                                     }
-                                                    Color.argb(255, red + gain, green + gain, blue + gain)
                                                 }
                                             }
                                         }
                                     }
-                                }
                             } else {
                                 watermarkedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
                                 val canvas = Canvas(watermarkedBitmap)
                                 val paint = Paint().apply {
-                                    color = if (ConfigDao.alterBrightness == "dim") Color.argb(80, 0, 0, 0) else Color.argb(80, 255, 255, 255)
-                                    textSize = min(bitmap.width, bitmap.height) * if (ConfigDao.watermarkType == "normal") 0.03f else 0.02f
-                                    textAlign = if (ConfigDao.watermarkType == "normal") Paint.Align.CENTER else Paint.Align.LEFT
-                                    typeface = ResourcesCompat.getFont(App.context, R.font.googlesansregular)
+                                    color = if (ConfigDao.alterBrightness == "dim") Color.argb(
+                                        80,
+                                        0,
+                                        0,
+                                        0
+                                    ) else Color.argb(80, 255, 255, 255)
+                                    textSize = min(
+                                        bitmap.width,
+                                        bitmap.height
+                                    ) * if (ConfigDao.watermarkType == "normal") 0.03f else 0.02f
+                                    textAlign =
+                                        if (ConfigDao.watermarkType == "normal") Paint.Align.CENTER else Paint.Align.LEFT
+                                    typeface = ResourcesCompat.getFont(
+                                        App.context,
+                                        R.font.googlesansregular
+                                    )
                                 }
-                                val drawStartWidth = if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else bitmap.width * 0.01f
-                                var drawStartHeight = if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent()) * 2
+                                val drawStartWidth =
+                                    if (ConfigDao.watermarkType == "normal") bitmap.width / 2f else bitmap.width * 0.01f
+                                var drawStartHeight =
+                                    if (ConfigDao.watermarkType == "normal") bitmap.height * 0.9f else bitmap.height - (paint.descent() - paint.ascent()) * 2
                                 drawText.forEach {
                                     this@withContext.ensureActive()
                                     canvas.drawText(
@@ -227,18 +297,19 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-                val resultLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
-                    if (activityResult.resultCode == Activity.RESULT_OK) {
-                        activityResult.data?.data?.let {
-                            val inputStream = contentResolver.openInputStream(it)!!
-                            path = it.path!!
-                            exif = ExifInterface(inputStream)
-                            watermarkedBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-                            bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, it)).copy(Bitmap.Config.ARGB_8888, true)
-                            inputStream.close()
+                val resultLauncher =
+                    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
+                        if (activityResult.resultCode == Activity.RESULT_OK) {
+                            activityResult.data?.data?.let {
+                                val result = readImage(it)
+                                path = result.third
+                                exif = result.second
+                                watermarkedBitmap =
+                                    Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+                                bitmap = result.first
+                            }
                         }
                     }
-                }
                 val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
                 Scaffold(
                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -319,7 +390,12 @@ class MainActivity : ComponentActivity() {
                                     .weight(1f)
                                     .padding(start = 25.dp, end = 12.5.dp)
                                     .defaultMinSize(minHeight = 50.dp),
-                                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
+                                shape = RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp
+                                ),
                                 enabled = !isProcessing && watermarkedBitmap.height != 1,
                                 onClick = {
                                     scope.launch {
@@ -336,7 +412,12 @@ class MainActivity : ComponentActivity() {
                                     .weight(1f)
                                     .padding(start = 12.5.dp, end = 25.dp)
                                     .defaultMinSize(minHeight = 50.dp),
-                                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 18.dp, bottomEnd = 18.dp),
+                                shape = RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp
+                                ),
                                 enabled = !isProcessing && watermarkedBitmap.height != 1,
                                 onClick = {
                                     scope.launch {
@@ -397,7 +478,11 @@ class MainActivity : ComponentActivity() {
                         )
                         if (ConfigDao.randomization == "static") {
                             SingleChoiceConfigChipGroup(
-                                modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
+                                modifier = Modifier.padding(
+                                    top = 10.dp,
+                                    start = 20.dp,
+                                    end = 20.dp
+                                ),
                                 key = "alterBrightness",
                                 defaultValue = "Brighten",
                                 "Dim" to { bitmap = bitmap.copy(bitmap.config, false) },
@@ -432,15 +517,36 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+                intent?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let {
+                    val result = readImage(it)
+                    path = result.third
+                    exif = result.second
+                    watermarkedBitmap =
+                        Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+                    bitmap = result.first
+                }
             }
         }
+    }
+
+    private fun readImage(uri: Uri): Triple<Bitmap, ExifInterface, String> {
+        val inputStream = contentResolver.openInputStream(uri)!!
+        val path = uri.path!!
+        exif = ExifInterface(inputStream)
+        //watermarkedBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        val bitmap = ImageDecoder
+            .decodeBitmap(ImageDecoder.createSource(contentResolver, uri))
+            .copy(Bitmap.Config.ARGB_8888, true)
+        inputStream.close()
+        return Triple(bitmap, exif, path)
     }
 
     private suspend fun saveImage(bitmap: Bitmap, compressFormat: CompressFormat) {
         withContext(Dispatchers.IO) {
             //isProcessing = true
             runCatching {
-                val imageFilePath = "${Environment.DIRECTORY_PICTURES}${File.separator}Emblematix${File.separator}"
+                val imageFilePath =
+                    "${Environment.DIRECTORY_PICTURES}${File.separator}Emblematix${File.separator}"
                 val imageFileName = "Emblematix_${System.currentTimeMillis()}.${
                     when (compressFormat) {
                         CompressFormat.JPEG -> "jpg"

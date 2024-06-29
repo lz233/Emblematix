@@ -16,11 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cn.ac.lz233.emblematix.App
 import cn.ac.lz233.emblematix.logic.dao.ConfigDao
 
-@ExperimentalMaterial3Api
 @Composable
 fun ConfigChip(text: String, key: String, defaultValue: Boolean, onclick: () -> Unit) {
     var config by remember { mutableStateOf(App.sp.getBoolean(key, defaultValue)) }
@@ -49,7 +49,6 @@ fun ConfigChip(text: String, key: String, defaultValue: Boolean, onclick: () -> 
     )
 }
 
-@ExperimentalMaterial3Api
 @Composable
 fun SingleChoiceConfigChipGroup(modifier: Modifier, key: String, defaultValue: String, vararg chips: Pair<String, () -> Unit>) {
     var config by remember { mutableStateOf(App.sp.getString(key, defaultValue.lowercase())) }
