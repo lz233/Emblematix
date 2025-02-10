@@ -328,6 +328,10 @@ class MainActivity : ComponentActivity() {
                                         },
                                     )
                                 )
+                                intent.putExtra(
+                                    "KEY_DISABLE_FLYME_CHOOSER",
+                                    true
+                                )
                                 resultLauncher.launch(intent)
                             },
                             shape = RoundedCornerShape(18.dp),
@@ -409,28 +413,28 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Spacer(modifier = Modifier.width(20.dp))
                             ConfigChip("Manufacturer", "showManufacturer", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("Model", "showModel", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("F Number", "showFNumber", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("Shutter Speed", "showShutterSpeed", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("Focal Length", "showFocalLength", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("ISO", "showISO", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("Date & Time", "showDateTime", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             ConfigChip("Copyright", "showCopyright", true) {
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             }
                             Spacer(modifier = Modifier.width(20.dp))
                         }
@@ -438,15 +442,15 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
                             key = "watermarkType",
                             defaultValue = "Normal",
-                            "Normal" to { bitmap = bitmap.copy(bitmap.config, false) },
-                            "Compact" to { bitmap = bitmap.copy(bitmap.config, false) }
+                            "Normal" to { bitmap = bitmap.copy(bitmap.config!!, false) },
+                            "Compact" to { bitmap = bitmap.copy(bitmap.config!!, false) }
                         )
                         SingleChoiceConfigChipGroup(
                             modifier = Modifier.padding(top = 10.dp, start = 20.dp, end = 20.dp),
                             key = "randomization",
                             defaultValue = "Randomize",
-                            "Randomize" to { bitmap = bitmap.copy(bitmap.config, false) },
-                            "Static" to { bitmap = bitmap.copy(bitmap.config, false) }
+                            "Randomize" to { bitmap = bitmap.copy(bitmap.config!!, false) },
+                            "Static" to { bitmap = bitmap.copy(bitmap.config!!, false) }
                         )
                         if (ConfigDao.randomization == "static") {
                             SingleChoiceConfigChipGroup(
@@ -457,8 +461,8 @@ class MainActivity : ComponentActivity() {
                                 ),
                                 key = "alterBrightness",
                                 defaultValue = "Brighten",
-                                "Dim" to { bitmap = bitmap.copy(bitmap.config, false) },
-                                "Brighten" to { bitmap = bitmap.copy(bitmap.config, false) }
+                                "Dim" to { bitmap = bitmap.copy(bitmap.config!!, false) },
+                                "Brighten" to { bitmap = bitmap.copy(bitmap.config!!, false) }
                             )
                         }
                         OutlinedTextField(
@@ -471,7 +475,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onValueChange = {
                                 ConfigDao.location = it
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             },
                         )
                         OutlinedTextField(
@@ -484,7 +488,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onValueChange = {
                                 ConfigDao.copyright = it
-                                bitmap = bitmap.copy(bitmap.config, false)
+                                bitmap = bitmap.copy(bitmap.config!!, false)
                             },
                         )
                     }
